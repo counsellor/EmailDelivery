@@ -1,0 +1,189 @@
+﻿@model List<UnileverEmailDelivery.Models.Delivery>
+
+@{
+    ViewBag.Title = "Email Delivery";
+}
+
+@if (ViewBag.isAdmin)
+{
+    <div class="customHead">
+        <button class="btn btn-info customBtn" id="btnNew">Добавить</button>
+        <button class="btn btn-warning customBtn" id="btnEdit">Редактировать</button>
+        <button class="btn btn-danger customBtn" id="btnDelete">Удалить</button>
+    </div>
+}
+<table id="mainTable" class="display" cellspacing="0" width="100%">
+    <thead>
+        <tr>
+            <th>BRAND</th>
+            <th>CAUSE</th> 
+            <th>EMAIL</th>
+            <th>CONCRETIZATION</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                @Html.HiddenFor(d => item.Id)
+                <td>@item.Brand</td>
+                <td>@item.Cause</td>
+                <td>@item.Email</td>
+                <td>@item.Concretization</td>
+            </tr>
+        }
+    </tbody>
+    <tfoot>
+        <tr>
+            <th>BRAND</th>
+            <th>CAUSE</th>
+            <th>EMAIL</th>
+            <th>CONCRETIZATION</th>
+        </tr>
+    </tfoot>
+</table>
+
+<!-- Modal -->
+<div class="modal fade bs-example-modal-lg" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Редактирование</h4>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <form class="form-horizontal" role="form">
+                        <div class="form-group" hidden><label>ID</label><input class="form-control" id="txtModalID" /></div>
+                        <div class="form-group"><label class="col-md-3">Бренд</label><input class="form-control col-md-9" id="txtModalBrand" /></div>
+                        <div class="form-group"><label class="col-md-3">Причина</label><input class="form-control col-md-9" id="txtModalCause" /></div>
+                        <div class="form-group"><label class="col-md-3">EMAIL</label><textarea class="form-control col-md-9" rows="4" id="txtModalEmail"></textarea></div>
+                        <div class="form-group"><label class="col-md-3">Конкретизация (1 или 0)</label><input class="form-control col-md-9" id="txtModalConcretization" /></div>
+                        <div class="form-group" hidden><label>Цвет</label><input class="form-control jscolor" id="txtModalColor" disabled /></div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Отмена</button>
+                <button type="button" id="btnSaveModal" class="btn btn-primary">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade bs-example-modal-lg" id="DeleteModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Удаление</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group" hidden><label>ID</label><input class="form-control" id="txtDelModalID" disabled /></div>
+                <h3>Уверены, что хотите удалить запись?</h3>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Отмена</button>
+                <button type="button" id="btnDeleteModal" class="btn btn-primary">Удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+<script type="text/javascript">
+    $(document).ready(function () {
+        $('#mainTable').DataTable({
+            select: '@ViewBag.isAdmin' === 'True' ? 'single' : false
+        });
+
+        //кнопка сохранения на модальном окне. окно для edit and new
+        $('#btnSaveModal').click(function () {
+            console.log("btnSaveModal click");
+            $.ajax({
+                url: '@Url.Action("SaveContact")',
+                cache: false,
+                type: "POST",
+                data: {
+                    id: $('#txtModalID').val(),
+                    brand: $('#txtModalBrand').val(),
+                    cause: $('#txtModalCause').val(),
+                    email: $('#txtModalEmail').val(),
+                    concretization: $('#txtModalConcretization').val(),
+                    color: $('#txtModalColor').val()
+                },
+                success: function () {
+                    alert("Изменения сохранены");
+                    window.location = "@Url.Content("~/Home/Index")";
+                },
+                error: function (er) {
+                    console.log(er);
+                }
+            });
+        });
+
+        //кнопка удаления в модальном окне. окно для delete
+        $('#btnDeleteModal').click(function () {
+            console.log("btnDeleteModal click");
+
+            $.ajax({
+                url: '@Url.Action("Delete")',
+                cache: false,
+                type: "POST",
+                data: {
+                    id: $('#txtDelModalID').val(),
+                },
+                success: function () {
+                    window.location = "@Url.Content("~/Home/Index")";
+                }
+            });
+        });
+
+        //создание новой записи
+        $('#btnNew').click(function () {
+            console.log("btnNew click");
+            $('#myModal .form-control').val("");
+
+            $('#txtModalID').val(-1);
+
+            $('#myModal').modal('show');
+        });
+
+        //редактирование существующей записи
+        $('#btnEdit').click(function () {
+            console.log("btnEdit click");
+            if ($('tbody tr').hasClass('selected')) {
+
+                $('#myModal .form-control').val("");
+
+                var input = $('tr.selected').find('input');
+                $('#txtModalID').val(input.val());
+
+                var td = $('tr.selected').find('td');
+
+                $('#txtModalBrand').val(td.eq(0).text());
+                $('#txtModalCause').val(td.eq(1).text());
+                $('#txtModalEmail').val(td.eq(2).text());
+                $('#txtModalConcretization').val(td.eq(3).text());
+
+                $('#myModal').modal('show');
+            } else {
+                alert("Строка не выбрана(");
+            }
+        });
+
+        //удаление выбранной записи
+        $('#btnDelete').click(function () {
+            console.log("btnDelete click");
+            if ($('tbody tr').hasClass('selected')) {
+                var input = $('tr.selected').find('input');
+                $('#txtDelModalID').val(input.val());
+                $('#DeleteModal').modal('show');
+            } else {
+                alert("Строка не выбрана(");
+            }
+        });
+    });
+</script>
+}
